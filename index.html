@@ -35,6 +35,19 @@
             margin: 20px auto;
             max-width: 1200px;
         }
+        .resolution-select {
+            margin: 20px 0;
+            background-color: #333;
+            border: none;
+            padding: 10px;
+            font-size: 16px;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .resolution-select:hover {
+            background-color: #555;
+        }
     </style>
 </head>
 <body>
@@ -42,6 +55,11 @@
 
     <!-- Categories will be loaded here -->
     <div class="categories" id="categoriesContainer"></div>
+
+    <!-- Resolution Selector -->
+    <select id="resolutionSelector" class="resolution-select">
+        <option value="auto">Select Resolution</option>
+    </select>
 
     <!-- Video Player -->
     <div class="video-container">
@@ -54,35 +72,39 @@
     <script>
         const m3uUrl = "http://m1-max.dns-speedy.com/get.php?username=JOSHUAUGO5386&password=506D4C&type=m3u_plus";
 
-        // Fetch and parse the M3U playlist
         fetch(m3uUrl)
             .then(response => response.text())
             .then(data => {
                 const categories = {};
                 const lines = data.split('\n');
-                let currentCategory = 'Other'; // Default category
+                let currentCategory = 'Other';
 
-                // Loop through the M3U playlist and extract category and stream information
+                const streamUrls = {}; // Holds stream URLs for each resolution
+
+                // Parse the M3U playlist
                 lines.forEach(line => {
                     if (line.startsWith('#EXTINF')) {
                         const categoryMatch = line.match(/,(.*) - (.*)$/);
                         const channelName = categoryMatch ? categoryMatch[1].trim() : 'Unknown';
                         const category = categoryMatch ? categoryMatch[2].trim() : 'Other';
 
-                        // Create a category if not already created
                         if (!categories[category]) {
                             categories[category] = [];
                         }
 
-                        // Get the stream URL
                         const urlIndex = lines.indexOf(line) + 1;
                         const streamUrl = lines[urlIndex];
 
-                        categories[category].push({ channelName, streamUrl });
+                        // Add stream URL by resolution (just a placeholder for now)
+                        const resolution = getResolution(streamUrl);
+                        if (!streamUrls[resolution]) {
+                            streamUrls[resolution] = [];
+                        }
+                        streamUrls[resolution].push({ channelName, streamUrl });
                     }
                 });
 
-                // Display categories dynamically
+                // Create category buttons
                 const categoriesContainer = document.getElementById('categoriesContainer');
                 for (const category in categories) {
                     const categoryButton = document.createElement('div');
@@ -93,28 +115,59 @@
                     categoriesContainer.appendChild(categoryButton);
                 }
 
-                // Function to display streams of the selected category
+                // Show streams for a specific category
                 function showCategoryStreams(category, streams) {
-                    const player = videojs('iptvPlayer');
                     const streamSelect = document.getElementById('streamSource');
+                    const resolutionSelector = document.getElementById('resolutionSelector');
+                    const player = videojs('iptvPlayer');
                     player.pause(); // Stop the current stream
 
-                    // If category is selected, show the list of channels in that category
+                    // Dynamically load streams for the category
                     const streamListHtml = streams.map(stream => {
                         return `<div class="category" onclick="changeStream('${stream.streamUrl}')">${stream.channelName}</div>`;
                     }).join('');
                     categoriesContainer.innerHTML = streamListHtml;
 
-                    // Change the stream URL when a stream is clicked
                     function changeStream(streamUrl) {
                         streamSelect.src = streamUrl;
                         player.play();
+
+                        // Update resolution options based on available stream resolutions
+                        updateResolutionOptions(streamUrl);
+                    }
+
+                    // Update resolution options dynamically
+                    function updateResolutionOptions(streamUrl) {
+                        resolutionSelector.innerHTML = "<option value='auto'>Select Resolution</option>";
+                        for (const resolution in streamUrls) {
+                            const option = document.createElement('option');
+                            option.value = resolution;
+                            option.text = `${resolution}`;
+                            resolutionSelector.appendChild(option);
+                        }
+
+                        resolutionSelector.onchange = () => {
+                            const selectedResolution = resolutionSelector.value;
+                            if (selectedResolution !== 'auto') {
+                                changeStream(streamUrls[selectedResolution][0].streamUrl);
+                            }
+                        };
+                    }
+                }
+
+                // Get stream resolution (placeholder logic, adjust as needed)
+                function getResolution(streamUrl) {
+                    if (streamUrl.includes('1080p')) {
+                        return '1080p';
+                    } else if (streamUrl.includes('720p')) {
+                        return '720p';
+                    } else {
+                        return 'auto';
                     }
                 }
             })
             .catch(error => console.error('Error loading M3U file:', error));
 
-        // Video.js initialization
         var player = videojs('iptvPlayer');
     </script>
 </body>
