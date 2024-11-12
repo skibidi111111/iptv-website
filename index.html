@@ -34,6 +34,7 @@
             width: 80%;
             margin: 20px auto;
             max-width: 1200px;
+            position: relative;
         }
         .resolution-select {
             margin: 20px 0;
@@ -47,6 +48,23 @@
         }
         .resolution-select:hover {
             background-color: #555;
+        }
+        /* Loading Spinner */
+        .spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -63,6 +81,8 @@
 
     <!-- Video Player -->
     <div class="video-container">
+        <!-- Loading Spinner -->
+        <div id="spinner" class="spinner"></div>
         <video id="iptvPlayer" class="video-js vjs-default-skin" controls preload="auto" width="100%" height="auto">
             <source id="streamSource" type="application/x-mpegURL">
         </video>
@@ -131,6 +151,12 @@
                     function changeStream(streamUrl) {
                         streamSelect.src = streamUrl;
                         player.play();
+
+                        // Hide the spinner after stream starts
+                        document.getElementById('spinner').style.display = 'none';
+
+                        // Show loading spinner before stream loads
+                        document.getElementById('spinner').style.display = 'block';
 
                         // Update resolution options based on available stream resolutions
                         updateResolutionOptions(streamUrl);
