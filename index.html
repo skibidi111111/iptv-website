@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPTV Live Stream</title>
+    <link href="https://vjs.zencdn.net/7.18.1/video-js.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #fff;
+            text-align: center;
+        }
+        .categories {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        .category {
+            color: #fff;
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #333;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .category:hover {
+            background-color: #555;
+        }
+        .video-container {
+            width: 80%;
+            margin: 20px auto;
+            max-width: 1200px;
+        }
+    </style>
+</head>
+<body>
+    <h1>IPTV Live Stream</h1>
+
+    <!-- Categories will be loaded here -->
+    <div class="categories" id="categoriesContainer"></div>
+
+    <!-- Video Player -->
+    <div class="video-container">
+        <video id="iptvPlayer" class="video-js vjs-default-skin" controls preload="auto" width="100%" height="auto">
+            <source id="streamSource" type="application/x-mpegURL">
+        </video>
+    </div>
+
+    <script src="https://vjs.zencdn.net/7.18.1/video.js"></script>
+    <script>
+        const m3uUrl = "http://m1-max.dns-speedy.com/get.php?username=JOSHUAUGO5386&password=506D4C&type=m3u_plus";
+
+        // Fetch and parse the M3U playlist
+        fetch(m3uUrl)
+            .then(response => response.text())
+            .then(data => {
+                const categories = {};
+                const lines = data.split('\n');
+                let currentCategory = 'Other'; // Default category
+
+                // Loop through the M3U playlist and extract category and stream information
+                lines.forEach(line => {
+                    if (line.startsWith('#EXTINF')) {
+                        const categoryMatch = line.match(/,(.*) - (.*)$/);
+                        const channelName = categoryMatch ? categoryMatch[1].trim() : 'Unknown';
+                        const category = categoryMatch ? categoryMatch[2].trim() : 'Other';
+
+                        // Create a category if not already created
+                        if (!categories[category]) {
+                            categories[category] = [];
+                        }
+
+                        // Get the stream URL
+                        const urlIndex = lines.indexOf(line) + 1;
+                        const streamUrl = lines[urlIndex];
+
+                        categories[category].push({ channelName, streamUrl });
+                    }
+                });
+
+                // Display categories dynamically
+                const categoriesContainer = document.getElementById('categoriesContainer');
+                for (const category in categories) {
+                    const categoryButton = document.createElement('div');
+                    categoryButton.classList.add('category');
+                    categoryButton.textContent = category;
+                    categoryButton.onclick = () => showCategoryStreams(category, categories[category]);
+
+                    categoriesContainer.appendChild(categoryButton);
+                }
+
+                // Function to display streams of the selected category
+                function showCategoryStreams(category, streams) {
+                    const player = videojs('iptvPlayer');
+                    const streamSelect = document.getElementById('streamSource');
+                    player.pause(); // Stop the current stream
+
+                    // If category is selected, show the list of channels in that category
+                    const streamListHtml = streams.map(stream => {
+                        return `<div class="category" onclick="changeStream('${stream.streamUrl}')">${stream.channelName}</div>`;
+                    }).join('');
+                    categoriesContainer.innerHTML = streamListHtml;
+
+                    // Change the stream URL when a stream is clicked
+                    function changeStream(streamUrl) {
+                        streamSelect.src = streamUrl;
+                        player.play();
+                    }
+                }
+            })
+            .catch(error => console.error('Error loading M3U file:', error));
+
+        // Video.js initialization
+        var player = videojs('iptvPlayer');
+    </script>
+</body>
+</html>
